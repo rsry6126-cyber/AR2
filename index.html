@@ -40,75 +40,48 @@
       const GALLERY_DATA = [
         { 
           id: 1, 
-          title: "Eye po", 
-          artist: "STF Photography", 
           file: "assets/pic1.jpg", 
-          description: "Painting ng eye po.",
-          year: "2024"
+          description: "Painting ng eye po."
         },
         { 
           id: 2, 
-          title: "Man po", 
-          artist: "STF Photography", 
           file: "assets/pic2.jpg", 
-          description: "Picture ng ------",
-          year: "2023"
+          description: "Picture ng ------"
         },
         { 
           id: 3, 
-          title: "Mossaic po", 
-          artist: "STF Photography", 
           file: "assets/pic3.jpg", 
-          description: "Mossaic lang po ----",
-          year: "2024"
+          description: "Mossaic lang po ----"
         },
         { 
           id: 4, 
-          title: "Girl po", 
-          artist: "STF Photography", 
           file: "assets/pic4.jpg", 
-          description: "Picture ng girl.",
-          year: "2023"
+          description: "Picture ng girl."
         },
         { 
           id: 5, 
-          title: "Guitar po", 
-          artist: "STF Photography", 
           file: "assets/pic5.jpg", 
-          description: "Painting ng guitar po.",
-          year: "2024"
+          description: "Painting ng guitar po."
         },
         { 
           id: 6, 
-          title: "Man playing instrument", 
-          artist: "STF Photography", 
           file: "assets/pic6.jpg", 
-          description: "Nagpplay po ng instrument.",
-          year: "2024"
+          description: "Nagpplay po ng instrument."
         },
         { 
           id: 7, 
-          title: "Gallery Piece 7", 
-          artist: "STF Photography", 
           file: "assets/pic1.jpg", 
-          description: "Additional gallery piece.",
-          year: "2024"
+          description: "Additional gallery piece."
         },
         { 
           id: 8, 
-          title: "Gallery Piece 8", 
-          artist: "STF Photography", 
           file: "assets/pic2.jpg", 
-          description: "Additional gallery piece.",
-          year: "2024"
+          description: "Additional gallery piece."
         },
         { 
           id: 9, 
-          title: "Gallery Piece 9", 
-          artist: "STF Photography", 
           file: "assets/pic3.jpg", 
-          description: "Additional gallery piece.",
-          year: "2024"
+          description: "Additional gallery piece."
         }
       ];
 
@@ -144,26 +117,29 @@
           }
         });
 
-        AFRAME.registerComponent('follow-position', {
-          schema: { target: {type: 'selector'} },
+        AFRAME.registerComponent('camera-lock', {
+          schema: { 
+            limit: {type: 'number', default: 95},
+            lockVertical: {type: 'boolean', default: true}
+          },
           tick: function () {
-            if (!this.data.target) return;
-            const targetPos = this.data.target.object3D.position;
-            this.el.object3D.position.copy(targetPos);
-          }
-        });
-
-        AFRAME.registerComponent('camera-limit', {
-          schema: { limit: {type: 'number', default: 95} },
-          tick: function () {
-            const rot = this.el.getAttribute('rotation');
-            if (rot.y > this.data.limit) {
-              rot.y = this.data.limit;
-              this.el.setAttribute('rotation', rot);
-            } else if (rot.y < -this.data.limit) {
-              rot.y = -this.data.limit;
-              this.el.setAttribute('rotation', rot);
+            const rotation = this.el.object3D.rotation;
+            
+            // Strictly lock vertical tilt (X-axis)
+            if (this.data.lockVertical) {
+              rotation.x = 0;
             }
+            
+            // Enforce horizontal pan limits (Y-axis)
+            const limitRad = this.data.limit * (Math.PI / 180);
+            if (rotation.y > limitRad) {
+              rotation.y = limitRad;
+            } else if (rotation.y < -limitRad) {
+              rotation.y = -limitRad;
+            }
+            
+            // Ensure Z-axis (roll) is always 0
+            rotation.z = 0;
           }
         });
       }
@@ -225,7 +201,7 @@
     >
       <a-assets id="gallery-assets"></a-assets>
 
-      <a-camera id="main-camera" camera-limit="limit: 100" position="0 1.6 0" look-controls="pointerLockEnabled: false; touchEnabled: true;" wasd-controls="enabled: false">
+      <a-camera id="main-camera" camera-lock="limit: 85" position="0 1.6 0" look-controls="pointerLockEnabled: false; touchEnabled: true;" wasd-controls="enabled: false">
         <a-cursor 
           color="#FFD700" 
           animation__click="property: scale; startEvents: click; from: 0.1 0.1 0.1; to: 1 1 1; dur: 150"
@@ -233,7 +209,7 @@
         ></a-cursor>
       </a-camera>
 
-      <a-entity id="gallery-container" follow-position="#main-camera" position="0 1.6 0"></a-entity>
+      <a-entity id="gallery-container" position="0 0 0"></a-entity>
 
       <a-light type="ambient" intensity="0.8"></a-light>
       <a-light type="directional" position="1 5 2" intensity="0.6"></a-light>
@@ -241,8 +217,8 @@
       <a-plane id="floor" rotation="-90 0 0" width="50" height="50" color="#050505" material="roughness: 0.8; metalness: 0.2"></a-plane>
       
       <!-- Subtle Backdrop Wall to ground the gallery -->
-      <a-entity position="0 2 -6" rotation="0 0 0">
-        <a-plane width="15" height="8" color="#0a0a0a" material="opacity: 0.5; transparent: true; roughness: 1"></a-plane>
+      <a-entity position="0 1.6 -6" rotation="0 0 0">
+        <a-plane width="20" height="10" color="#0a0a0a" material="opacity: 0.5; transparent: true; roughness: 1"></a-plane>
       </a-entity>
 
       <a-sky id="sky" color="#000"></a-sky>
@@ -259,8 +235,8 @@
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M14.31 8l5.74 9.94M9.69 8h11.48M7.38 12l5.74-9.94M9.69 16L3.95 6.06M14.31 16H2.83M16.62 12l-5.74 9.94"/></svg>
           </div>
           <div>
-            <h1 class="text-white text-lg font-display font-semibold tracking-tight leading-tight">AR GALLERY</h1>
-            <p class="text-white/40 text-[10px] uppercase tracking-[0.2em] font-medium">Exhibit 2026</p>
+            <h1 class="text-white text-lg font-display font-semibold tracking-tight leading-tight uppercase tracking-widest">Exhibit Beta</h1>
+            <p class="text-white/40 text-[10px] uppercase tracking-[0.2em] font-medium">Pan-Only Experience</p>
           </div>
         </div>
         
@@ -273,7 +249,7 @@
       <div class="flex flex-row justify-between items-end w-full pointer-events-none relative z-10">
         
         <!-- Info Card -->
-        <div id="info-card" class="opacity-0 translate-y-10 pointer-events-none transition-all duration-500 glass p-8 md:p-10 rounded-[2.5rem] md:rounded-[3rem] shadow-2xl max-w-[340px] md:max-w-md w-full text-white relative overflow-hidden mb-4 border border-white/10">
+        <div id="info-card" class="opacity-0 translate-y-10 pointer-events-none transition-all duration-500 glass px-6 py-10 md:p-12 rounded-[2.5rem] md:rounded-[3rem] shadow-2xl max-w-[calc(100vw-3rem)] w-[400px] md:max-w-md text-white relative overflow-hidden mb-4 border border-white/10">
           <!-- Decorative Background Elements -->
           <div class="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
           <div class="absolute bottom-0 left-0 w-24 h-24 bg-yellow-500/5 rounded-full blur-2xl -ml-12 -mb-12 pointer-events-none"></div>
@@ -286,13 +262,13 @@
           </button>
 
           <!-- Editorial Layout -->
-          <div class="relative z-10">
+          <div class="relative z-10 w-full">
             <div class="flex items-center gap-3 mb-6">
               <div class="w-8 h-[1px] bg-white/20"></div>
               <span class="text-[10px] uppercase font-display font-medium tracking-[0.3em] text-white/40">Entry Detail</span>
             </div>
 
-            <p id="card-description" class="text-sm md:text-base text-white/70 leading-relaxed font-serif italic mb-8 md:mb-10 line-clamp-5 md:line-clamp-none"></p>
+            <p id="card-description" class="text-sm md:text-base text-white/70 leading-relaxed font-serif italic mb-8 md:mb-10 line-clamp-6 md:line-clamp-none w-full break-words"></p>
 
             <button onclick="window.viewFullscreen()" id="view-fullscreen-btn" class="group w-full py-4 bg-white text-black rounded-2xl font-display font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-white/90 transition-all duration-300 flex items-center justify-center gap-3 pointer-events-auto shadow-xl hover:shadow-white/10">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="group-hover:scale-110 transition-transform"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -335,8 +311,8 @@
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M14.31 8l5.74 9.94M9.69 8h11.48M7.38 12l5.74-9.94M9.69 16L3.95 6.06M14.31 16H2.83M16.62 12l-5.74 9.94"/></svg>
         </div>
         
-        <h2 class="text-white text-5xl font-serif italic font-semibold mb-4 tracking-tight">STF Photo</h2>
-        <p class="text-white/40 font-display text-[10px] uppercase tracking-[0.4em] mb-10">AR Experience</p>
+        <h2 class="text-white text-5xl font-serif italic font-semibold mb-4 tracking-tight uppercase tracking-tighter">Test Reel</h2>
+        <p class="text-white/40 font-display text-[10px] uppercase tracking-[0.4em] mb-10">Limited Panning Experience</p>
         
         <div class="glass-light p-8 rounded-[2rem] mb-10 text-left relative overflow-hidden">
           <h4 class="text-white/80 text-xs font-bold uppercase tracking-widest mb-3 flex items-center gap-2">
@@ -351,11 +327,11 @@
         <div class="space-y-4 mb-12">
           <div class="flex items-center gap-4 text-left glass-light px-6 py-4 rounded-2xl border-white/5">
             <div class="w-6 h-6 rounded-full bg-white/5 flex-shrink-0 flex items-center justify-center text-[10px] font-bold border border-white/10">1</div>
-            <p class="text-white/60 text-[11px] font-medium tracking-wide">Explore the space using your device.</p>
+            <p class="text-white/60 text-[11px] font-medium tracking-wide">Swipe left or right to move along the reel.</p>
           </div>
           <div class="flex items-center gap-4 text-left glass-light px-6 py-4 rounded-2xl border-white/5">
             <div class="w-6 h-6 rounded-full bg-white/5 flex-shrink-0 flex items-center justify-center text-[10px] font-bold border border-white/10">2</div>
-            <p class="text-white/60 text-[11px] font-medium tracking-wide">Focus on any artwork to reveal its story.</p>
+            <p class="text-white/60 text-[11px] font-medium tracking-wide">Vertical tilt is disabled for stability.</p>
           </div>
         </div>
 
@@ -381,23 +357,10 @@
       const noteDisplay = document.getElementById('curator-note-display');
       if (noteDisplay) noteDisplay.innerText = `"${CURATOR_NOTE}"`;
 
-      // Initialize Groups
-      const groupEntities = [];
-      const numGroups = 3;
-      const groupRadius = 4.8; // Adjusted distance for better viewing without overlap
-      const totalGroupSpan = 85; // Increased span to separate groups
-      
-      for (let g = 0; g < numGroups; g++) {
-        const groupAngle = -(totalGroupSpan / 2) + (g * (totalGroupSpan / (numGroups - 1)));
-        const gx = Math.sin(groupAngle * (Math.PI / 180)) * groupRadius;
-        const gz = -Math.cos(groupAngle * (Math.PI / 180)) * groupRadius;
-        
-        const groupEl = document.createElement('a-entity');
-        groupEl.setAttribute('position', `${gx} 0 ${gz}`); 
-        groupEl.setAttribute('rotation', `0 ${-groupAngle} 0`);
-        container.appendChild(groupEl);
-        groupEntities.push(groupEl);
-      }
+      // Layout Configuration
+      const totalSpan = 140; // Degrees
+      const radius = 5.5;    // Distance from center
+      const yLevel = 1.6;    // Eye level for better viewing
 
       // Initialize Items
       GALLERY_DATA.forEach((item, index) => {
@@ -409,34 +372,40 @@
         img.referrerPolicy = "no-referrer";
         assets.appendChild(img);
 
-        // 2. Group Position Logic (3 groups of 3: 1 parent above, 2 children below)
-        const groupIndex = Math.floor(index / 3);
-        const itemInGroup = index % 3; // 0=Parent, 1=ChildL, 2=ChildR
-        const groupEntity = groupEntities[groupIndex];
-
-        let localX = 0, localY = 0;
-        if (itemInGroup === 0) {
-          localY = 0.65; // Parent
-          localX = 0;
-        } else {
-          localY = -0.45; // Children
-          localX = itemInGroup === 1 ? -0.95 : 0.95; // Closer internal spacing
-        }
+        // 2. Arc Positioning Logic
+        const angle = -(totalSpan / 2) + (index * (totalSpan / (GALLERY_DATA.length - 1)));
+        const rad = angle * (Math.PI / 180);
+        
+        const posX = Math.sin(rad) * radius;
+        const posZ = -Math.cos(rad) * radius;
         
         const entity = document.createElement('a-entity');
-        entity.setAttribute('position', `${localX} ${localY} 0`);
+        entity.setAttribute('position', `${posX} ${yLevel} ${posZ}`);
+        entity.setAttribute('rotation', `0 ${-angle} 0`);
 
-        // 3. Create the Frame & Canvas (Landscape friendly)
+        // 3. Create the Film Frame & Canvas
         const baseH = 1.0; 
         const baseW = 1.6;
+        const frameW = baseW + 0.2;
+        const frameH = baseH + 0.4;
+
+        // Add 6 sprocket holes top and bottom
+        let holes = '';
+        for (let i = 0; i < 6; i++) {
+          const hX = -frameW / 2 + (i + 0.5) * (frameW / 6);
+          // Top row holes - darker to look like punch-outs
+          holes += `<a-plane position="${hX} ${frameH/2 - 0.08} 0.026" width="0.1" height="0.08" color="#050505" material="opacity: 1; roughness: 1"></a-plane>`;
+          // Bottom row holes
+          holes += `<a-plane position="${hX} ${-frameH/2 + 0.08} 0.026" width="0.1" height="0.08" color="#050505" material="opacity: 1; roughness: 1"></a-plane>`;
+        }
 
         entity.innerHTML = `
-          <a-box id="frame-bg-${item.id}" position="0 0 -0.06" width="${baseW + 0.15}" height="${baseH + 0.15}" depth="0.06" color="#1a1a1a"></a-box>
-          <a-box id="frame-border-${item.id}" position="0 0 -0.03" width="${baseW + 0.06}" height="${baseH + 0.06}" depth="0.04" color="#D4AF37"></a-box>
-          <a-image id="canvas-${item.id}" src="#img-${item.id}" width="${baseW}" height="${baseH}" class="clickable" gallery-item="id: ${item.id}"></a-image>
+          <a-box id="frame-bg-${item.id}" width="${frameW}" height="${frameH}" depth="0.05" color="#000000"></a-box>
+          ${holes}
+          <a-image id="canvas-${item.id}" src="#img-${item.id}" width="${baseW}" height="${baseH}" position="0 0 0.03" class="clickable" gallery-item="id: ${item.id}"></a-image>
         `;
 
-        groupEntity.appendChild(entity);
+        container.appendChild(entity);
 
         // 4. Dynamic Sizing Logic: Detect real image dimensions
         const checkImg = new Image();
@@ -459,22 +428,17 @@
           // Update A-Frame elements
           const canvas = document.getElementById(`canvas-${item.id}`);
           const bg = document.getElementById(`frame-bg-${item.id}`);
-          const border = document.getElementById(`frame-border-${item.id}`);
           
           if (canvas) {
             canvas.setAttribute('width', finalW);
             canvas.setAttribute('height', finalH);
           }
           if (bg) {
-            bg.setAttribute('width', finalW + 0.15);
-            bg.setAttribute('height', finalH + 0.15);
-          }
-          if (border) {
-            border.setAttribute('width', finalW + 0.06);
-            border.setAttribute('height', finalH + 0.06);
+            bg.setAttribute('width', finalW + 0.2);
+            bg.setAttribute('height', finalH + 0.4);
           }
           
-          console.log(`Adjusted ${item.title}: Ratio ${ratio.toFixed(2)} -> Size ${finalW.toFixed(2)}x${finalH.toFixed(2)}`);
+          console.log(`Adjusted Item ${item.id}: Ratio ${ratio.toFixed(2)} -> Size ${finalW.toFixed(2)}x${finalH.toFixed(2)}`);
         };
       });
 
