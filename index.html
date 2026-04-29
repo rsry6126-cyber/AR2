@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AR Gallery</title>
+    <title>AR Gallery (3x3 Grid)</title>
     
     <!-- Libraries -->
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
@@ -181,8 +181,31 @@
 
       window.enterAR = function() {
         const scene = document.querySelector('a-scene');
+        
+        // Secure Context Check
+        if (!window.isSecureContext && window.location.hostname !== "localhost") {
+          alert("AR requires HTTPS to access the camera. If you are hosting on your own server, please ensure you have an SSL certificate (https://) for this domain.");
+          return;
+        }
+
+        // WebXR support check
+        if (!navigator.xr) {
+          alert("WebXR/AR is not supported on this browser or device. For AR, use a mobile device with Chrome or Safari.");
+          return;
+        }
+
         if (scene && scene.enterAR) scene.enterAR();
       };
+
+      // Check on load to warn user
+      window.addEventListener('DOMContentLoaded', () => {
+        if (!window.isSecureContext && window.location.hostname !== "localhost") {
+          const noteDisplay = document.getElementById('curator-note-display');
+          if (noteDisplay) {
+            noteDisplay.innerHTML += `<br><br><span class="text-red-400 font-bold block mt-2">⚠️ HTTPS Required: AR will be disabled unless served over a secure connection.</span>`;
+          }
+        }
+      });
 
       window.closeInstructions = function() {
         const modal = document.getElementById('instructions-modal');
@@ -354,23 +377,11 @@
       const noteDisplay = document.getElementById('curator-note-display');
       if (noteDisplay) noteDisplay.innerText = `"${CURATOR_NOTE}"`;
 
-      // Initialize Groups
-      const groupEntities = [];
-      const numGroups = 3;
-      const groupRadius = 4.8; // Adjusted distance for better viewing without overlap
-      const totalGroupSpan = 85; // Increased span to separate groups
-      
-      for (let g = 0; g < numGroups; g++) {
-        const groupAngle = -(totalGroupSpan / 2) + (g * (totalGroupSpan / (numGroups - 1)));
-        const gx = Math.sin(groupAngle * (Math.PI / 180)) * groupRadius;
-        const gz = -Math.cos(groupAngle * (Math.PI / 180)) * groupRadius;
-        
-        const groupEl = document.createElement('a-entity');
-        groupEl.setAttribute('position', `${gx} 0 ${gz}`); 
-        groupEl.setAttribute('rotation', `0 ${-groupAngle} 0`);
-        container.appendChild(groupEl);
-        groupEntities.push(groupEl);
-      }
+      // Grid Configuration
+      const numCols = 3;
+      const arcPadding = 24; // Degrees between columns
+      const yStep = 1.2;     // Vertical distance between rows
+      const radius = 5.2;    // Distance from the viewer
 
       // Initialize Items
       GALLERY_DATA.forEach((item, index) => {
@@ -382,22 +393,23 @@
         img.referrerPolicy = "no-referrer";
         assets.appendChild(img);
 
-        // 2. Group Position Logic (3 groups of 3: 1 parent above, 2 children below)
-        const groupIndex = Math.floor(index / 3);
-        const itemInGroup = index % 3; // 0=Parent, 1=ChildL, 2=ChildR
-        const groupEntity = groupEntities[groupIndex];
+        // 2. Position Logic (3x3 Grid)
+        const col = index % numCols;
+        const row = Math.floor(index / numCols);
 
-        let localX = 0, localY = 0;
-        if (itemInGroup === 0) {
-          localY = 0.65; // Parent
-          localX = 0;
-        } else {
-          localY = -0.45; // Children
-          localX = itemInGroup === 1 ? -0.95 : 0.95; // Closer internal spacing
-        }
+        // Calculate horizontal position along an arc
+        const angle = (col - 1) * arcPadding;
+        const rad = angle * (Math.PI / 180);
+        
+        let posX = Math.sin(rad) * radius;
+        let posZ = -Math.cos(rad) * radius;
+        
+        // Calculate vertical position (Shifted to balance eye level)
+        const posY = (1.2 - row) * yStep; 
         
         const entity = document.createElement('a-entity');
-        entity.setAttribute('position', `${localX} ${localY} 0`);
+        entity.setAttribute('position', `${posX} ${posY} ${posZ}`);
+        entity.setAttribute('rotation', `0 ${-angle} 0`);
 
         // 3. Create the Frame & Canvas (Landscape friendly)
         const baseH = 1.0; 
@@ -409,7 +421,7 @@
           <a-image id="canvas-${item.id}" src="#img-${item.id}" width="${baseW}" height="${baseH}" class="clickable" gallery-item="id: ${item.id}"></a-image>
         `;
 
-        groupEntity.appendChild(entity);
+        container.appendChild(entity);
 
         // 4. Dynamic Sizing Logic: Detect real image dimensions
         const checkImg = new Image();
