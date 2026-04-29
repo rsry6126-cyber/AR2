@@ -181,31 +181,8 @@
 
       window.enterAR = function() {
         const scene = document.querySelector('a-scene');
-        
-        // Secure Context Check
-        if (!window.isSecureContext && window.location.hostname !== "localhost") {
-          alert("AR requires HTTPS to access the camera. If you are hosting on your own server, please ensure you have an SSL certificate (https://) for this domain.");
-          return;
-        }
-
-        // WebXR support check
-        if (!navigator.xr) {
-          alert("WebXR/AR is not supported on this browser or device. For AR, use a mobile device with Chrome or Safari.");
-          return;
-        }
-
         if (scene && scene.enterAR) scene.enterAR();
       };
-
-      // Check on load to warn user
-      window.addEventListener('DOMContentLoaded', () => {
-        if (!window.isSecureContext && window.location.hostname !== "localhost") {
-          const noteDisplay = document.getElementById('curator-note-display');
-          if (noteDisplay) {
-            noteDisplay.innerHTML += `<br><br><span class="text-red-400 font-bold block mt-2">⚠️ HTTPS Required: AR will be disabled unless served over a secure connection.</span>`;
-          }
-        }
-      });
 
       window.closeInstructions = function() {
         const modal = document.getElementById('instructions-modal');
